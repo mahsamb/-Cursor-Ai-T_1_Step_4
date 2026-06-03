@@ -23,16 +23,18 @@ jobs:
             exit 1
           fi
 
-          # checkout makes files read-only; cp/mv into workspace fails without this
           chmod -R u+w "$GITHUB_WORKSPACE"
 
-          mkdir -p /tmp/extracted
-          unzip -q "$ZIP" -d /tmp/extracted
+          EXTRACT_DIR="/tmp/extracted-bot"
+          rm -rf "$EXTRACT_DIR" 2>/dev/null || true
+          mkdir -p "$EXTRACT_DIR"
+          unzip -q -o "$ZIP" -d "$EXTRACT_DIR"
+          chmod -R u+w "$EXTRACT_DIR"
 
-          SRC="/tmp/extracted/Cursor Ai-T_1_Step_4"
+          SRC="$EXTRACT_DIR/Cursor Ai-T_1_Step_4"
           if [ ! -d "$SRC" ]; then
             echo "Expected folder not found after unzip:"
-            find /tmp/extracted -maxdepth 2
+            find "$EXTRACT_DIR" -maxdepth 2
             exit 1
           fi
 
@@ -40,9 +42,9 @@ jobs:
           cp -r "$SRC"/* "$GITHUB_WORKSPACE"/
 
           rm -f "$GITHUB_WORKSPACE/$ZIP"
-          rm -rf /tmp/extracted
           find "$GITHUB_WORKSPACE" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
           rm -f "$GITHUB_WORKSPACE/shop.db" "$GITHUB_WORKSPACE/desktop.ini" 2>/dev/null || true
+          ls -la "$GITHUB_WORKSPACE"
 
       - name: Commit extracted files
         run: |
