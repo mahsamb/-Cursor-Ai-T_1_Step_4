@@ -12,17 +12,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Unzip and move files to repo root
+      - name: Unzip and copy files to repo root
         run: |
-          if [ ! -f "Cursor Ai-T_1_Step_4.zip" ]; then
-            echo "ZIP file not found in repo root."
+          set -e
+          ZIP="Cursor Ai-T_1_Step_4.zip"
+
+          if [ ! -f "$ZIP" ]; then
+            echo "ZIP file not found: $ZIP"
+            ls -la
             exit 1
           fi
-          unzip -q "Cursor Ai-T_1_Step_4.zip"
+
+          # checkout makes files read-only; cp/mv into workspace fails without this
+          chmod -R u+w "$GITHUB_WORKSPACE"
+
+          mkdir -p /tmp/extracted
+          unzip -q "$ZIP" -d /tmp/extracted
+
+          SRC="/tmp/extracted/Cursor Ai-T_1_Step_4"
+          if [ ! -d "$SRC" ]; then
+            echo "Expected folder not found after unzip:"
+            find /tmp/extracted -maxdepth 2
+            exit 1
+          fi
+
           shopt -s dotglob
-          mv "Cursor Ai-T_1_Step_4"/* .
-          rmdir "Cursor Ai-T_1_Step_4"
-          rm "Cursor Ai-T_1_Step_4.zip"
+          cp -r "$SRC"/* "$GITHUB_WORKSPACE"/
+
+          rm -f "$GITHUB_WORKSPACE/$ZIP"
+          rm -rf /tmp/extracted
+          find "$GITHUB_WORKSPACE" -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+          rm -f "$GITHUB_WORKSPACE/shop.db" "$GITHUB_WORKSPACE/desktop.ini" 2>/dev/null || true
 
       - name: Commit extracted files
         run: |
